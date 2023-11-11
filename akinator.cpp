@@ -1,14 +1,16 @@
 #include "lib.h"
-//#include "/Users/dima/MIPT/Stack/stack.h"
+#include "/Users/dima/MIPT/Stack/stack.h"
 
 //#define DUMP_ON
 
 typedef int Tree_t;
 
 struct Tree* Tree_Ctor(Tree_t value);
-void Create_Node(struct Node* new_node, Tree_t new_val);
+struct Node* Create_Node(Tree_t new_val);
 struct Node* Insert(struct Tree* tree, Tree_t new_val);
-void Print_Node(struct Node* node);
+void Print_Pre_Order(struct Node* node);
+void Print_In_Order(struct Node* node);
+void Print_Post_Order(struct Node* node);
 void Tree_Dtor(struct Tree* tree);
 void Delite_Sub_Tree(struct Node* del_node);
 void Beautiful_Dump();
@@ -29,25 +31,22 @@ struct Tree
     int size;
 };
 
-void Create_Node(struct Node* new_node, Tree_t new_val)
+struct Node* Create_Node(Tree_t new_val)
 {
-    assert(new_node);
+    struct Node* new_node = (struct Node*) calloc(1, sizeof(struct Node));
 
     new_node -> val = new_val;
     new_node -> left = NULL;
     new_node -> right = NULL;
+
+    return new_node;
 }
 
 struct Tree* Tree_Ctor(Tree_t value)
 {
-
     struct Tree* tree = (struct Tree*) calloc(1, sizeof(struct Tree));
-    //tree -> root = (struct Node*) calloc(1, sizeof(struct Node));
-    tree -> size = 0;
-    //(tree -> root) -> val   = value;
-    //(tree -> root) -> left  = NULL;
-    //(tree -> root) -> right = NULL;
 
+    tree -> size = 0;
 
     return tree;
 }
@@ -58,8 +57,7 @@ struct Node* Insert(struct Tree* tree, Tree_t new_val)
 
     struct Node* now_node = tree -> root;
 
-    struct Node* new_node = (struct Node*) calloc(1, sizeof(struct Node));
-    Create_Node(new_node, new_val);
+    struct Node* new_node = Create_Node(new_val);
 
     if(!(now_node))
     {
@@ -107,6 +105,10 @@ void Delite_Sub_Tree(struct Node* del_node)
     del_node -> left  = NULL;
 
     Delite_Sub_Tree(del_node -> left );
+
+    free(del_node -> left );
+    free(del_node -> right);
+
     Delite_Sub_Tree(del_node -> right);
 
     free(del_node -> left );
@@ -122,7 +124,21 @@ void Tree_Dtor(struct Tree* tree)
     Delite_Sub_Tree(tree -> root);
 }
 
-void Print_Node(struct Node* node)
+void Print_Post_Order(struct Node* node)
+{
+    if(node == NULL){
+        printf("null ");
+        return;
+    }
+
+    printf("( ");
+    Print_Post_Order(node -> left);
+    Print_Post_Order(node -> right);
+    printf("%d ", node -> val);
+    printf(") ");
+}
+
+void Print_Pre_Order(struct Node* node)
 {
     if(node == NULL){
         printf("null ");
@@ -131,10 +147,22 @@ void Print_Node(struct Node* node)
 
     printf("( ");
     printf("%d ", node -> val);
-    Print_Node(node -> left);
-    //printf("%d ", node -> val);
-    Print_Node(node -> right);
-    //printf("%d ", node -> val);
+    Print_Pre_Order(node -> left);
+    Print_Pre_Order(node -> right);
+    printf(") ");
+}
+
+void Print_In_Order(struct Node* node)
+{
+    if(node == NULL){
+        printf("null ");
+        return;
+    }
+
+    printf("( ");
+    Print_In_Order(node -> left);
+    printf("%d ", node -> val);
+    Print_In_Order(node -> right);
     printf(") ");
 }
 
@@ -145,7 +173,7 @@ void Tree_Dump(struct Tree* tree)
     Beautiful_Dump();
     printf("root = %p\nsize = %d\n", tree -> root, tree -> size);
     printf("-----------------------------------------------------------------------------------------------------------------------\n");
-    Print_Node(tree -> root);
+    Print_In_Order(tree -> root);
 }
 
 void Print_Node_to_file(struct Node* node, FILE* file_dot, int i)
@@ -214,24 +242,16 @@ void Draw_Graph(struct Tree* tree)
 void Convert_file_to_tree(struct Tree* tree)
 {
     struct stat st = {};
+    int open_brackets = 0;
+    int close_brackets = 0;
+    int i = 0;
+
     FILE* file = fopen("Tree.txt", "r");
     stat("Tree.txt", &st);
 
     char* buf = (char*) calloc(st.st_size, sizeof(char));
 
     fread(buf, sizeof (char), st.st_size, file);
-
-    for(int i = 0; i < st.st_size; i++)
-    {
-        printf("%c", buf[i]);
-    }
-
-
-    int open_brackets = 0;
-    int close_brackets = 0;
-    int i = 0;
-
-    //(tree -> root) -> val = atoi(&buf[2]);
 
      while (true)
     {
@@ -249,12 +269,15 @@ void Convert_file_to_tree(struct Tree* tree)
             break;
         }
         i++;
+
         #ifdef DUMO_ON
             Tree_Dump(tree);
         #endif
     }
 
 }
+
+
 
 int main()
 {
