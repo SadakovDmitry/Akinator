@@ -2,8 +2,13 @@
 #include "/Users/dima/MIPT/Stack/stack.h"
 
 //#define DUMP_ON
+#define tree_t "%s"
+#define TYPE_INSERT atoi(&buf[i + 2])
+//#define INSERT  Insert(tree, atoi(&buf[i + 2]));
+#define INSERT_LEFT   Insert_to_Pointer_left(tree, &buf[i + 2], now_node);
+#define INSERT_RIGHT  Insert_to_Pointer_right(tree, &buf[i + 2], now_node);
 
-typedef int Tree_t;
+typedef char* Tree_t;
 
 struct Tree* Tree_Ctor(Tree_t value);
 struct Node* Create_Node(Tree_t new_val);
@@ -16,6 +21,7 @@ void Delite_Sub_Tree(struct Node* del_node);
 void Beautiful_Dump();
 void Draw_Graph(struct Tree* tree);
 void Print_Node_to_file(struct Node* node, FILE* file_dot, int i);
+struct Node* Insert_to_Pointer(struct Tree* tree, Tree_t new_val, struct Node* now_node);
 
 struct Node
 {
@@ -23,6 +29,7 @@ struct Node
     int num_node;
     struct Node* left;
     struct Node* right;
+    struct Node* prev;
 };
 
 struct Tree
@@ -34,8 +41,10 @@ struct Tree
 struct Node* Create_Node(Tree_t new_val)
 {
     struct Node* new_node = (struct Node*) calloc(1, sizeof(struct Node));
+    new_node -> val = (char*) calloc(100, sizeof(char));
 
     new_node -> val = new_val;
+    fprintf(stderr, " str = %c%c%c\n", new_node -> val[0], new_node -> val[1], new_node -> val[2]);
     new_node -> left = NULL;
     new_node -> right = NULL;
 
@@ -46,7 +55,13 @@ struct Tree* Tree_Ctor(Tree_t value)
 {
     struct Tree* tree = (struct Tree*) calloc(1, sizeof(struct Tree));
 
+
     tree -> size = 0;
+    /*
+    (tree -> root) -> left = NULL;
+    (tree -> root) -> right = NULL;
+    (tree -> root) -> val = value;
+    */
 
     return tree;
 }
@@ -97,6 +112,46 @@ struct Node* Insert(struct Tree* tree, Tree_t new_val)
     return new_node;
 }
 
+struct Node* Insert_to_Pointer_left(struct Tree* tree, Tree_t new_val, struct Node* now_node)
+{
+    struct Node* new_node = Create_Node(new_val);
+    //printf("pointer = %p\n", now_node);
+    tree -> size++;
+
+    if(!(now_node))
+    {
+        tree -> root = new_node;
+        return tree -> root;
+    }
+
+    new_node -> val = new_val;
+    new_node -> left  = NULL;
+    new_node -> right = NULL;
+    now_node -> left = new_node;
+
+    return new_node;
+}
+
+struct Node* Insert_to_Pointer_right(struct Tree* tree, Tree_t new_val, struct Node* now_node)
+{
+    struct Node* new_node = Create_Node(new_val);
+    //printf("pointer = %p\n", now_node);
+    tree -> size++;
+
+    if(!(now_node))
+    {
+        tree -> root = new_node;
+        return tree -> root;
+    }
+
+    new_node -> val = new_val;
+    new_node -> left  = NULL;
+    new_node -> right = NULL;
+    now_node -> right = new_node;
+
+    return new_node;
+}
+
 void Delite_Sub_Tree(struct Node* del_node)
 {
     assert(del_node);
@@ -124,6 +179,8 @@ void Tree_Dtor(struct Tree* tree)
     Delite_Sub_Tree(tree -> root);
 }
 
+
+
 void Print_Post_Order(struct Node* node)
 {
     if(node == NULL){
@@ -134,7 +191,7 @@ void Print_Post_Order(struct Node* node)
     printf("( ");
     Print_Post_Order(node -> left);
     Print_Post_Order(node -> right);
-    printf("%d ", node -> val);
+    printf(tree_t" ", node -> val);
     printf(") ");
 }
 
@@ -146,7 +203,7 @@ void Print_Pre_Order(struct Node* node)
     }
 
     printf("( ");
-    printf("%d ", node -> val);
+    printf(tree_t" ", node -> val);
     Print_Pre_Order(node -> left);
     Print_Pre_Order(node -> right);
     printf(") ");
@@ -161,10 +218,12 @@ void Print_In_Order(struct Node* node)
 
     printf("( ");
     Print_In_Order(node -> left);
-    printf("%d ", node -> val);
+    printf(tree_t" ", node -> val);
     Print_In_Order(node -> right);
     printf(") ");
 }
+
+
 
 void Tree_Dump(struct Tree* tree)
 {
@@ -173,19 +232,22 @@ void Tree_Dump(struct Tree* tree)
     Beautiful_Dump();
     printf("root = %p\nsize = %d\n", tree -> root, tree -> size);
     printf("-----------------------------------------------------------------------------------------------------------------------\n");
-    Print_In_Order(tree -> root);
+    Print_Pre_Order(tree -> root);
 }
+
+
 
 void Print_Node_to_file(struct Node* node, FILE* file_dot, int i)
 {
     if(node == NULL) return;
-    i++;
+    //i++;
 
     Print_Node_to_file(node -> left, file_dot, i);
-    node -> num_node = i;
-    fprintf(file_dot, "%d [shape = record, style = \"rounded\", label = \"{val: %d |{ <left> left: %p | <right> right: %p }}\"];\n\t", i, node -> val, node -> left, node -> right);
+    //node -> num_node = i;
+    fprintf(stderr, " str = %s\n", node -> val);
+    fprintf(file_dot, "%d [shape = record, style = \"rounded\", label = \"{val: "tree_t" |{ <left> left: %p | <right> right: %p }}\"];\n\t", node, node -> val, node -> left, node -> right);
 
-    i++;
+    //i++;
 
     Print_Node_to_file(node -> right, file_dot, i);
 }
@@ -196,14 +258,14 @@ void Arrows_in_Graph(struct Node* node, FILE* file_dot)
 
     if (node -> left != NULL)
     {
-        fprintf(file_dot, "%d -> %d\n\t", node -> num_node , (node -> left) -> num_node);
+        fprintf(file_dot, "%d -> %d\n\t", node, node -> left);
     }
 
     Arrows_in_Graph(node -> left, file_dot);
 
     if (node -> right != NULL)
     {
-        fprintf(file_dot, "%d -> %d\n\t", node -> num_node , (node -> right) -> num_node);
+        fprintf(file_dot, "%d -> %d\n\t", node, node -> right);
     }
 
     Arrows_in_Graph(node -> right, file_dot);
@@ -238,7 +300,7 @@ void Draw_Graph(struct Tree* tree)
 
     fprintf(file_dot, "\n}\n");
 }
-
+/*
 void Convert_file_to_tree(struct Tree* tree)
 {
     struct stat st = {};
@@ -253,12 +315,13 @@ void Convert_file_to_tree(struct Tree* tree)
 
     fread(buf, sizeof (char), st.st_size, file);
 
-     while (true)
+    while (true)
     {
         if(buf[i] == '(')
         {
             open_brackets++;
-            Insert(tree, atoi(&buf[i + 2]));
+            //printf("str = %s", TYPE_INSERT);
+            INSERT
         }
         else if(buf[i] == ')')
         {
@@ -270,25 +333,147 @@ void Convert_file_to_tree(struct Tree* tree)
         }
         i++;
 
-        #ifdef DUMO_ON
+        #ifdef DUMP_ON
+            Tree_Dump(tree);
+        #endif
+    }
+}
+*/
+void Convert_file_to_tree_with_pointers(struct Tree* tree)
+{
+    struct stat st = {};
+    int open_brackets = 0;
+    int close_brackets = 0;
+    struct Node* temp = NULL;
+    int i = 0;
+    int ind = 1;
+
+    FILE* file = fopen("Tree.txt", "r");
+    stat("Tree.txt", &st);
+
+    char* buf = (char*) calloc(st.st_size, sizeof(char));
+
+    fread(buf, sizeof (char), st.st_size, file);
+
+    struct Node* now_node = tree -> root;
+
+    while (true)
+    {
+        if(buf[i] == '(')
+        {
+            open_brackets++;
+            temp = now_node;
+
+            if(ind == 1)
+            {
+                now_node = INSERT_LEFT
+
+            }
+            else
+            {
+                now_node = INSERT_RIGHT
+            }
+            //ind = ind * -1;
+            now_node -> prev = temp;
+
+        }
+        else if(buf[i] == ')')
+        {
+            close_brackets++;
+            now_node = now_node -> prev;
+            ind = ind * -1;
+        }
+        else if(strncmp(&buf[i], "null", 4) == 0)
+        {
+            ind = ind * -1;
+        }
+        if(close_brackets == open_brackets)
+        {
+            break;
+        }
+        i++;
+
+        #ifdef DUMP_ON
+            Tree_Dump(tree);
+        #endif
+    }
+}
+
+/*
+void New_read(struct Tree* tree)
+{
+    char str[100] = "";
+    char left[100] = ""
+    char right[100] = "";
+    FILE* file = fopen("Tree.txt", "r");
+    struct Node* now_node = tree -> root;
+    fscanf(file, "%s", str);
+    printf("str = %s\n", str);
+
+    while (true)
+    {
+        if(strcmp("(", str) == 0)
+        {
+            open_brackets++;
+            temp = now_node;
+            fscanf(file, "%s", left);
+            fscanf(file, "%s", right);
+            //if((open_brackets - close_brackets) % 2 == 0)
+            if(ind % 2 == 1)
+            {
+                now_node = Insert_to_Pointer_left(tree, atoi(&buf[i + 2]), now_node);
+
+            }
+            else
+            {
+                now_node = Insert_to_Pointer_right(tree, atoi(&buf[i + 2]), now_node);
+            }
+            ind++;
+            now_node -> prev = temp;
+
+        }
+        else if(strcmp(")", str) == 0)
+        {
+            close_brackets++;
+            //if (now_node -> prev)
+            //{
+            now_node = now_node -> prev;
+            //}
+        }
+        if(close_brackets == open_brackets)
+        {
+            break;
+        }
+        i++;
+
+        #ifdef DUMP_ON
             Tree_Dump(tree);
         #endif
     }
 
 }
-
-
+*/
 
 int main()
 {
-    struct Tree* tree = Tree_Ctor(10);
+    char first_str[100] = "start";
+    struct Tree* tree = Tree_Ctor(first_str);
+
     /*
+    Insert(tree, 10);
     Insert(tree, 20);
     Insert(tree, 5);
     Insert(tree, 30);
+    Insert(tree, 15);
+    Insert(tree, 14);
+    Insert(tree, 7);
+    Insert(tree, 1);
+    Insert(tree, 25);
     */
-    Convert_file_to_tree(tree);
 
-    Tree_Dump(tree);
+    //Convert_file_to_tree(tree);
+    Convert_file_to_tree_with_pointers(tree);
+
+    //Tree_Dump(tree);
     Draw_Graph(tree);
 }
