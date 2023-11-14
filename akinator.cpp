@@ -2,15 +2,21 @@
 #include "/Users/dima/MIPT/Stack/stack.h"
 
 //#define DUMP_ON
+#define STR_TYPE
+#define _GNU_SOURCE
 #define tree_t "%s"
 #define TYPE_INSERT atoi(&buf[i + 2])
 //#define INSERT  Insert(tree, atoi(&buf[i + 2]));
-#define INSERT_LEFT   Insert_to_Pointer_left(tree, &buf[i + 2], now_node);
-#define INSERT_RIGHT  Insert_to_Pointer_right(tree, &buf[i + 2], now_node);
+#define INSERT_LEFT   Insert_to_Pointer_left(tree, new_val, now_node);
+#define INSERT_RIGHT  Insert_to_Pointer_right(tree, new_val, now_node);
 
 typedef char* Tree_t;
 
-struct Tree* Tree_Ctor(Tree_t value);
+const int STR_SIZE = 100;
+
+void Reload_tree(struct Tree* tree);
+void Guessing(struct Tree* tree);
+struct Tree* Tree_Ctor();
 struct Node* Create_Node(Tree_t new_val);
 struct Node* Insert(struct Tree* tree, Tree_t new_val);
 void Print_Pre_Order(struct Node* node);
@@ -22,6 +28,7 @@ void Beautiful_Dump();
 void Draw_Graph(struct Tree* tree);
 void Print_Node_to_file(struct Node* node, FILE* file_dot, int i);
 struct Node* Insert_to_Pointer(struct Tree* tree, Tree_t new_val, struct Node* now_node);
+void Save_new_tree(struct Node* node, FILE* file);
 
 struct Node
 {
@@ -38,20 +45,40 @@ struct Tree
     int size;
 };
 
+char* Convert_str_in_buf(char* new_val)
+{
+    #ifdef STR_TYPE
+        int i = 0;
+
+        char* str_val = (char*) calloc(STR_SIZE, sizeof(char));
+
+        while(*(new_val + i + 1) != '\"')
+        {
+            *(str_val + i) = *(new_val + i + 1);
+            i++;
+        }
+
+        //*(str_val + i) = '\0';
+        //str_val = (char*) realloc(str_val, i + 1);
+    #endif
+
+    return str_val;
+}
+
 struct Node* Create_Node(Tree_t new_val)
 {
     struct Node* new_node = (struct Node*) calloc(1, sizeof(struct Node));
     new_node -> val = (char*) calloc(100, sizeof(char));
 
     new_node -> val = new_val;
-    fprintf(stderr, " str = %c%c%c\n", new_node -> val[0], new_node -> val[1], new_node -> val[2]);
+    //fprintf(stderr, " str = %s\n", new_val);
     new_node -> left = NULL;
     new_node -> right = NULL;
 
     return new_node;
 }
 
-struct Tree* Tree_Ctor(Tree_t value)
+struct Tree* Tree_Ctor()
 {
     struct Tree* tree = (struct Tree*) calloc(1, sizeof(struct Tree));
 
@@ -115,7 +142,6 @@ struct Node* Insert(struct Tree* tree, Tree_t new_val)
 struct Node* Insert_to_Pointer_left(struct Tree* tree, Tree_t new_val, struct Node* now_node)
 {
     struct Node* new_node = Create_Node(new_val);
-    //printf("pointer = %p\n", now_node);
     tree -> size++;
 
     if(!(now_node))
@@ -124,9 +150,7 @@ struct Node* Insert_to_Pointer_left(struct Tree* tree, Tree_t new_val, struct No
         return tree -> root;
     }
 
-    new_node -> val = new_val;
-    new_node -> left  = NULL;
-    new_node -> right = NULL;
+    new_node -> prev = now_node;
     now_node -> left = new_node;
 
     return new_node;
@@ -135,7 +159,6 @@ struct Node* Insert_to_Pointer_left(struct Tree* tree, Tree_t new_val, struct No
 struct Node* Insert_to_Pointer_right(struct Tree* tree, Tree_t new_val, struct Node* now_node)
 {
     struct Node* new_node = Create_Node(new_val);
-    //printf("pointer = %p\n", now_node);
     tree -> size++;
 
     if(!(now_node))
@@ -144,9 +167,7 @@ struct Node* Insert_to_Pointer_right(struct Tree* tree, Tree_t new_val, struct N
         return tree -> root;
     }
 
-    new_node -> val = new_val;
-    new_node -> left  = NULL;
-    new_node -> right = NULL;
+    new_node -> prev = now_node;
     now_node -> right = new_node;
 
     return new_node;
@@ -191,22 +212,13 @@ void Print_Post_Order(struct Node* node)
     printf("( ");
     Print_Post_Order(node -> left);
     Print_Post_Order(node -> right);
-    printf(tree_t" ", node -> val);
+    printf("\""tree_t"\" ", node -> val);
     printf(") ");
 }
 
 void Print_Pre_Order(struct Node* node)
 {
-    if(node == NULL){
-        printf("null ");
-        return;
-    }
-
-    printf("( ");
-    printf(tree_t" ", node -> val);
-    Print_Pre_Order(node -> left);
-    Print_Pre_Order(node -> right);
-    printf(") ");
+    Save_new_tree(node, stdout);
 }
 
 void Print_In_Order(struct Node* node)
@@ -218,7 +230,7 @@ void Print_In_Order(struct Node* node)
 
     printf("( ");
     Print_In_Order(node -> left);
-    printf(tree_t" ", node -> val);
+    printf("\""tree_t"\" ", node -> val);
     Print_In_Order(node -> right);
     printf(") ");
 }
@@ -244,8 +256,8 @@ void Print_Node_to_file(struct Node* node, FILE* file_dot, int i)
 
     Print_Node_to_file(node -> left, file_dot, i);
     //node -> num_node = i;
-    fprintf(stderr, " str = %s\n", node -> val);
-    fprintf(file_dot, "%d [shape = record, style = \"rounded\", label = \"{val: "tree_t" |{ <left> left: %p | <right> right: %p }}\"];\n\t", node, node -> val, node -> left, node -> right);
+    //fprintf(stderr, " str = %s\n", node -> val);
+    fprintf(file_dot, "%lld [shape = record, style = \"rounded\", label = \"{val: "tree_t" |{ <left> left: %p | <right> right: %p }}\"];\n\t", (long long int) node, node -> val, node -> left, node -> right);
 
     //i++;
 
@@ -258,14 +270,14 @@ void Arrows_in_Graph(struct Node* node, FILE* file_dot)
 
     if (node -> left != NULL)
     {
-        fprintf(file_dot, "%d -> %d\n\t", node, node -> left);
+        fprintf(file_dot, "%lld -> %lld\n\t", (long long int) node, (long long int) node -> left);
     }
 
     Arrows_in_Graph(node -> left, file_dot);
 
     if (node -> right != NULL)
     {
-        fprintf(file_dot, "%d -> %d\n\t", node, node -> right);
+        fprintf(file_dot, "%lld -> %lld\n\t", (long long int) node, (long long int) node -> right);
     }
 
     Arrows_in_Graph(node -> right, file_dot);
@@ -300,6 +312,9 @@ void Draw_Graph(struct Tree* tree)
 
     fprintf(file_dot, "\n}\n");
 }
+
+
+
 /*
 void Convert_file_to_tree(struct Tree* tree)
 {
@@ -339,12 +354,14 @@ void Convert_file_to_tree(struct Tree* tree)
     }
 }
 */
+
 void Convert_file_to_tree_with_pointers(struct Tree* tree)
 {
     struct stat st = {};
     int open_brackets = 0;
     int close_brackets = 0;
     struct Node* temp = NULL;
+    char* new_val = NULL;
     int i = 0;
     int ind = 1;
 
@@ -363,6 +380,7 @@ void Convert_file_to_tree_with_pointers(struct Tree* tree)
         {
             open_brackets++;
             temp = now_node;
+            new_val = Convert_str_in_buf(&buf[i + 2]);
 
             if(ind == 1)
             {
@@ -373,7 +391,7 @@ void Convert_file_to_tree_with_pointers(struct Tree* tree)
             {
                 now_node = INSERT_RIGHT
             }
-            //ind = ind * -1;
+            ind = 1;
             now_node -> prev = temp;
 
         }
@@ -381,12 +399,16 @@ void Convert_file_to_tree_with_pointers(struct Tree* tree)
         {
             close_brackets++;
             now_node = now_node -> prev;
-            ind = ind * -1;
+            ind = -1;
         }
         else if(strncmp(&buf[i], "null", 4) == 0)
         {
             ind = ind * -1;
+            i = i + 3;
         }
+        //printf("str = %c\n ind = %d\n\n", buf[i], ind);
+
+
         if(close_brackets == open_brackets)
         {
             break;
@@ -397,83 +419,168 @@ void Convert_file_to_tree_with_pointers(struct Tree* tree)
             Tree_Dump(tree);
         #endif
     }
-}
+    fclose(file);
+    }
 
-/*
-void New_read(struct Tree* tree)
+
+
+void Guessing(struct Tree* tree)
 {
-    char str[100] = "";
-    char left[100] = ""
-    char right[100] = "";
-    FILE* file = fopen("Tree.txt", "r");
     struct Node* now_node = tree -> root;
-    fscanf(file, "%s", str);
-    printf("str = %s\n", str);
+    char answer[100] = "";
 
     while (true)
     {
-        if(strcmp("(", str) == 0)
+        printf("\nIs it %s ?\n", now_node -> val);
+        scanf("%s", answer);
+
+        if (strcasecmp("yes", answer) == 0)
         {
-            open_brackets++;
-            temp = now_node;
-            fscanf(file, "%s", left);
-            fscanf(file, "%s", right);
-            //if((open_brackets - close_brackets) % 2 == 0)
-            if(ind % 2 == 1)
+            now_node = now_node -> left;
+
+            if(!(now_node -> left))
             {
-                now_node = Insert_to_Pointer_left(tree, atoi(&buf[i + 2]), now_node);
+                printf("\nIs it %s ?\n", now_node -> val);
+                scanf("%s", answer);
 
+                if (strcasecmp("yes", answer) == 0)
+                {
+                    printf("\nBrilliant!!!\n");
+                }
+                else if (strcasecmp("no", answer) == 0)
+                {
+                        printf("\nWho/What is it ?\n");
+                        scanf("%s", answer);
+                        char* new_val = (char*) calloc(100, sizeof(char));
+                        new_val = strcpy(new_val, answer);
+                        Insert_to_Pointer_left(tree, new_val, now_node);
+                        Insert_to_Pointer_right(tree, now_node -> val, now_node);
+
+                        printf("\nPrint what differense between %s and %s ?\n", answer, now_node -> val);
+
+                        size_t len = STR_SIZE;
+                        char* str_dif = (char*) calloc(STR_SIZE, sizeof(char));
+
+                        while(getchar() != '\n')
+                            ;
+
+                        getline(&str_dif, &len, stdin);
+
+                        len = strlen(str_dif);
+                        char* new_dif = (char*) calloc(STR_SIZE, sizeof(char));
+                        new_dif = strncpy(new_dif, str_dif, len - 1);
+
+                        now_node -> val = new_dif;
+                }
+                break;
             }
-            else
+        }
+        else if (strcasecmp("no", answer) == 0)
+        {
+            now_node = now_node -> right;
+
+            if(!(now_node -> right))
             {
-                now_node = Insert_to_Pointer_right(tree, atoi(&buf[i + 2]), now_node);
+                printf("\nIs it %s ?\n", now_node -> val);
+                scanf("%s", answer);
+
+                if (strcasecmp("yes", answer) == 0)
+                {
+                    printf("\nBrilliant!!!\n");
+                }
+                else if (strcasecmp("no", answer) == 0)
+                {
+                    //printf("\nDo you wont add this ?\n");
+                    //scanf("%s", answer);
+                    //if (strcasecmp("yes", answer) == 0)
+                    //{
+                        printf("\nWho/What is it ?\n");
+                        scanf("%s", answer);
+                        char* new_val = (char*) calloc(100, sizeof(char));
+                        new_val = strcpy(new_val, answer);
+                        Insert_to_Pointer_left(tree, new_val, now_node);
+                        Insert_to_Pointer_right(tree, now_node -> val, now_node);
+
+                        printf("\nPrint what differense between %s and %s ?\n", answer, now_node -> val);
+                        //scanf("%s", answer);
+                        //int len = 0;
+                        //while(scanf("%s", answer) == 1)
+                        //{
+                        size_t len = STR_SIZE;
+                        char* str_dif = (char*) calloc(STR_SIZE, sizeof(char));
+
+                        Clean_buf();
+
+                        getline(&str_dif, &len, stdin);
+
+                        len = strlen(str_dif);
+                        char* new_dif = (char*) calloc(STR_SIZE, sizeof(char));
+                        new_dif = strncpy(new_dif, str_dif, len - 1);
+                        //fprintf(stderr, "%s\n", str_dif);
+
+                        now_node -> val = new_dif;
+                    //}
+                }
+                break;
             }
-            ind++;
-            now_node -> prev = temp;
-
         }
-        else if(strcmp(")", str) == 0)
+        else
         {
-            close_brackets++;
-            //if (now_node -> prev)
-            //{
-            now_node = now_node -> prev;
-            //}
+            printf("Incorrect input! You can answer only \"yes\" or \"no\"!");
         }
-        if(close_brackets == open_brackets)
-        {
-            break;
-        }
-        i++;
+    }
+}
 
-        #ifdef DUMP_ON
-            Tree_Dump(tree);
-        #endif
+void Save_new_tree(struct Node* node, FILE* file)
+{
+    if(node == NULL){
+        fprintf(file, "null ");
+        return;
     }
 
+    fprintf(file, "( ");
+    fprintf(file, "\""tree_t"\" ", node -> val);
+    Save_new_tree(node -> left, file);
+    Save_new_tree(node -> right, file);
+    fprintf(file, ") ");
 }
-*/
+
+void Reload_tree(struct Tree* tree)
+{
+    char answer[STR_SIZE] = "";
+
+    printf("\nDo you wont save new data base ?\n");
+    scanf("%s", answer);
+
+    if (strcasecmp("yes", answer) == 0)
+    {
+        FILE* file = fopen("Tree.txt", "w");
+        Save_new_tree(tree -> root, file);
+        fclose(file);
+    }
+}
+
+
+void Clean_buf()
+{
+    while(getchar() != '\n')
+        ;
+}
+
 
 int main()
 {
-    char first_str[100] = "start";
-    struct Tree* tree = Tree_Ctor(first_str);
+    struct Tree* tree = Tree_Ctor();
 
-    /*
-    Insert(tree, 10);
-    Insert(tree, 20);
-    Insert(tree, 5);
-    Insert(tree, 30);
-    Insert(tree, 15);
-    Insert(tree, 14);
-    Insert(tree, 7);
-    Insert(tree, 1);
-    Insert(tree, 25);
-    */
-
-    //Convert_file_to_tree(tree);
     Convert_file_to_tree_with_pointers(tree);
 
-    //Tree_Dump(tree);
     Draw_Graph(tree);
+
+    Guessing(tree);
+
+    Reload_tree(tree);
+
+    Tree_Dump(tree);
+    Draw_Graph(tree);
+    //exit(EXIT_SUCCESS);
 }
