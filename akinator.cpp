@@ -4,6 +4,7 @@
 #include "operating_mode.h"
 
 #include "/Users/dima/MIPT/Stack/stack.h"
+//#include "stack.h"
 
 
 
@@ -20,11 +21,13 @@ int main()
 
     Draw_Graph(tree);
 
-    Guessing(tree);
+    Choose_Operating_Mode(tree, stk, &canary, &ERR);
 
-    Reload_tree(tree);
+    //Guessing(tree, stk, &canary);
 
-    Tree_Dump(tree);
+    //Reload_tree(tree);
+
+    //Tree_Dump(tree);
     Draw_Graph(tree);
 
     Stack_Dtor (stk, &canary);

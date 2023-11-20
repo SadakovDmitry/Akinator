@@ -23,7 +23,7 @@ struct Tree* Tree_Ctor()
     return tree;
 }
 
-
+#warning shit to folder
 
 struct Node* Insert(struct Tree* tree, Tree_t new_val)
 {
@@ -100,8 +100,10 @@ void Delite_Sub_Tree(struct Node* del_node)
 {
     assert(del_node);
 
-    del_node -> right = NULL;
-    del_node -> left  = NULL;
+    if(del_node  == NULL)
+    {
+        return;
+    }
 
     Delite_Sub_Tree(del_node -> left );
 

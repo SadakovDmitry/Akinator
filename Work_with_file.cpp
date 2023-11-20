@@ -3,6 +3,7 @@
 #include "lib.h"
 
 #include "/Users/dima/MIPT/Stack/stack.h"
+//#include "stack.h"
 
 
 char* Convert_str_in_buf(char* new_val)
@@ -26,11 +27,14 @@ char* Convert_str_in_buf(char* new_val)
 void Print_Node_to_file(struct Node* node, FILE* file_dot, int i)
 {
     if(node == NULL) return;
-
+    i++;
     Print_Node_to_file(node -> left, file_dot, i);
-    fprintf(file_dot, "%lld [shape = record, style = \"rounded\", label = \"{val: "tree_t" |{ <left> left: %p | <right> right: %p }}\"];\n\t", (long long int) node, node -> val, node -> left, node -> right);
-
+    i--;
+    //fprintf(file_dot, "%lld [rank = \"%d\", shape = record, style = \"rounded\", label = \"{val: "tree_t" |{ <left> left: %p | <right> right: %p }}\"];\n\t", (long long int) node, i, node -> val, node -> left, node -> right);
+    fprintf(file_dot, "%lld [rank = \"%d\", shape = record, style = \"rounded\", label = \"{"tree_t" |{ <left> left | <right> right }}\"];\n\t", (long long int) node, i, node -> val);
+    i++;
     Print_Node_to_file(node -> right, file_dot, i);
+    i--;
 }
 
 void Arrows_in_Graph(struct Node* node, FILE* file_dot)
@@ -39,14 +43,14 @@ void Arrows_in_Graph(struct Node* node, FILE* file_dot)
 
     if (node -> left != NULL)
     {
-        fprintf(file_dot, "%lld -> %lld\n\t", (long long int) node, (long long int) node -> left);
+        fprintf(file_dot, "%lld:<left> -> %lld[color = \"green\"]\n\t", (long long int) node, (long long int) node -> left);
     }
 
     Arrows_in_Graph(node -> left, file_dot);
 
     if (node -> right != NULL)
     {
-        fprintf(file_dot, "%lld -> %lld\n\t", (long long int) node, (long long int) node -> right);
+        fprintf(file_dot, "%lld:<right> -> %lld[color = \"red\"]\n\t", (long long int) node, (long long int) node -> right);
     }
 
     Arrows_in_Graph(node -> right, file_dot);
@@ -75,7 +79,7 @@ void Draw_Graph(struct Tree* tree)
 
     fprintf(file_dot, "Tree [shape = record, style = \"rounded\", label = \"root: %p | size: %d\"];\n\t", tree -> root, tree -> size);
 
-    int i = 0;
+    int i = 1;
     Print_Node_to_file(tree -> root, file_dot, i);
     Arrows_in_Graph(tree -> root, file_dot);
 
@@ -165,7 +169,7 @@ void Convert_file_to_tree_with_pointers(struct Tree* tree)
         }
         i++;
 
-        #ifdef DUMP_ON
+        #ifdef DUMP_ON_TREE
             Tree_Dump(tree);
         #endif
     }

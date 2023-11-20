@@ -1,3 +1,7 @@
+#ifndef USED_W_W_FILE
+#define USED_W_W_FILE
+
+#include "lib.h"
 char* Convert_str_in_buf(char* new_val);
 void Beautiful_Dump();
 void Draw_Graph(struct Tree* tree);
@@ -38,3 +42,5 @@ struct Tree
     struct Node* root;
     int size;
 };
+
+#endif
